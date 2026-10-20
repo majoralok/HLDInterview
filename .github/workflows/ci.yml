@@ -14,11 +14,16 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
       - run: npm ci --no-audit --no-fund
+      - run: npm test
+      - run: python scripts/check_repository.py
       - run: npm run build:worker && npm run validate:worker
       - run: npm run typecheck
       - run: npm run lint

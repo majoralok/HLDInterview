@@ -26,4 +26,6 @@ These are design inferences, not claims about ScaleMock's implementation.
 
 ## Unknowns and REA status
 
-The active Codex session did not expose REA MCP tools. The local Codex configuration contains a version-pinned REA MCP registration, but the sandbox could not fetch or execute the package and npm returned an access error. A restarted Codex session with the REA server connected is needed for runtime DOM, accessibility, listener, or network evidence. No claim in this repository depends on unobserved private implementation details.
+The original investigation did not expose REA MCP tools and encountered a package-fetch access error. During the 2026-10-20 maintenance pass, the installed REA skill and a version-pinned MCP registration were present, but no callable REA tools appeared in the active session. The public sheet URL was opened with the web tool, but it returned no readable page content; this pass therefore adds no new reference-site behavioral claims. Reconnect or restart with the REA server connected before requesting runtime DOM, accessibility, listener, or network evidence. No claim in this repository depends on unobserved private implementation details.
+
+The curriculum expansion to 30 challenges, Python learning examples, progress import, and rubric improvements are original product decisions. They are not claims about ScaleMock features.

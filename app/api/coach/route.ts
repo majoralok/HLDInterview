@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { problemBank } from "@/lib/problem-bank";
+import { readReviewRequest, ReviewRequestError } from "@/lib/review-request.js";
 
 export const runtime = "edge";
 
@@ -36,7 +38,9 @@ function clientKey(request: Request) {
 
 function isRateLimited(key: string) {
   const now = Date.now();
+  for (const [id, entry] of windows) if (entry.resetAt <= now) windows.delete(id);
   const current = windows.get(key);
+  if (!current && windows.size >= 10000) return true;
   if (!current || current.resetAt <= now) {
     windows.set(key, { count: 1, resetAt: now + WINDOW_MS });
     return false;
@@ -76,31 +80,17 @@ function isReview(value: unknown): value is Review {
 }
 
 export async function POST(request: Request) {
-  const origin = request.headers.get("origin");
-  if (origin && new URL(origin).host !== new URL(request.url).host) {
-    return NextResponse.json({ error: "Cross-origin review requests are not allowed." }, { status: 403 });
+  let input: Awaited<ReturnType<typeof readReviewRequest>>;
+  try { input = await readReviewRequest(request, problemBank); }
+  catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Invalid request." }, {
+      status: error instanceof ReviewRequestError ? error.status : 400,
+      headers: { "cache-control": "no-store" },
+    });
   }
-
+  const { problem, answer } = input;
   if (isRateLimited(clientKey(request))) {
-    return NextResponse.json({ error: "Review limit reached. Try again in a few minutes." }, { status: 429 });
-  }
-
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Request body must be valid JSON." }, { status: 400 });
-  }
-
-  if (!body || typeof body !== "object") {
-    return NextResponse.json({ error: "Invalid review request." }, { status: 400 });
-  }
-  const { problem, answer } = body as { problem?: unknown; answer?: unknown };
-  if (!problem || typeof problem !== "object" || typeof answer !== "string") {
-    return NextResponse.json({ error: "A design brief and answer are required." }, { status: 400 });
-  }
-  if (answer.trim().length < 120 || answer.length > 25_000) {
-    return NextResponse.json({ error: "Answer must be between 120 and 25,000 characters." }, { status: 400 });
+    return NextResponse.json({ error: "Review limit reached. Try again in a few minutes." }, { status: 429, headers: { "cache-control": "no-store" } });
   }
 
   const apiKey = process.env.OPENAI_API_KEY;
@@ -111,16 +101,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const brief = problem as Record<string, unknown>;
-  const safeBrief = {
-    title: String(brief.title ?? "System design question").slice(0, 180),
-    summary: String(brief.summary ?? "").slice(0, 800),
-    scale: String(brief.scale ?? "").slice(0, 300),
-    requirements: Array.isArray(brief.requirements) ? brief.requirements.slice(0, 12) : [],
-    constraints: Array.isArray(brief.constraints) ? brief.constraints.slice(0, 12) : [],
-    checkpoints: Array.isArray(brief.checkpoints) ? brief.checkpoints.slice(0, 12) : [],
-    interviewerPush: String(brief.interviewerPush ?? "").slice(0, 500),
-  };
+  const safeBrief = problem;
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 45_000);
@@ -163,7 +144,7 @@ export async function POST(request: Request) {
         : status === 503
           ? "The server API key was rejected. Check OPENAI_API_KEY."
           : "The AI reviewer could not complete this request.";
-      console.error("OpenAI review failed", upstream.status, payload.error?.message);
+      console.error("OpenAI review failed", upstream.status);
       return NextResponse.json({ error: message }, { status });
     }
 
@@ -177,7 +158,7 @@ export async function POST(request: Request) {
       headers: { "cache-control": "no-store", "x-content-type-options": "nosniff" },
     });
   } catch (error) {
-    console.error("AI review request error", error instanceof Error ? error.message : "unknown error");
+    console.error("AI review request failed");
     return NextResponse.json(
       { error: error instanceof Error && error.name === "AbortError" ? "The AI review timed out. Try again." : "The AI reviewer is unavailable." },
       { status: 502 },

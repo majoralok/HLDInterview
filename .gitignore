@@ -56,3 +56,41 @@ next-env.d.ts
 /.codex/
 /outputs/
 /work/
+
+# Python environments, bytecode, packaging, and tool caches
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+*.egg-info/
+
+# Build metadata, local databases, logs, and personal progress backups
+*.tsbuildinfo
+*.log
+*.sqlite
+*.sqlite3
+*.db
+architect-lab-*.json
+!data/architect-lab-*.json
+
+# Editor and operating-system files
+.idea/
+.vscode/
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+*~
+
+# Local credentials and tool state
+.aws/
+*.key
+*.p12
+*.pfx
+.envrc

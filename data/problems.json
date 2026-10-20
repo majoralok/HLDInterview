@@ -1,0 +1,1082 @@
+[
+  {
+    "order": 1,
+    "id": "short-links",
+    "shortTitle": "Short links",
+    "title": "Design a resilient short-link service",
+    "summary": "Create compact links, redirect globally, and keep popular destinations fast without losing consistency.",
+    "difficulty": "Foundation",
+    "category": "Core patterns",
+    "minutes": 35,
+    "scale": "120M redirects/day · 8K writes/sec peak",
+    "focus": [
+      "key generation",
+      "caching",
+      "read-heavy traffic"
+    ],
+    "requirements": [
+      "Create custom aliases",
+      "Redirect with low latency",
+      "Expire or disable a link",
+      "Return basic click analytics"
+    ],
+    "constraints": [
+      "p99 under 80 ms",
+      "No alias collision",
+      "Multi-region reads",
+      "Creation abuse controls"
+    ],
+    "checkpoints": [
+      "API and idempotency",
+      "alias strategy",
+      "cache policy",
+      "partition key",
+      "hot-link protection"
+    ],
+    "interviewerPush": "A celebrity link receives three million requests in five minutes. What changes?"
+  },
+  {
+    "order": 2,
+    "id": "rate-limiter",
+    "shortTitle": "Rate limiter",
+    "title": "Design a distributed rate limiter",
+    "summary": "Protect APIs with tenant-aware quotas while keeping enforcement fast across many gateway instances.",
+    "difficulty": "Foundation",
+    "category": "Infrastructure",
+    "minutes": 40,
+    "scale": "2M checks/sec · 40K tenants",
+    "focus": [
+      "token bucket",
+      "atomicity",
+      "failure modes"
+    ],
+    "requirements": [
+      "Per-user and per-route limits",
+      "Burst allowance",
+      "Dynamic policy updates",
+      "Standard limit headers"
+    ],
+    "constraints": [
+      "Under 5 ms latency",
+      "Bounded overshoot",
+      "Regional fault tolerance",
+      "Policy-based fail-open"
+    ],
+    "checkpoints": [
+      "algorithm choice",
+      "counter ownership",
+      "atomic update",
+      "config propagation",
+      "fallback behavior"
+    ],
+    "interviewerPush": "The shared counter store is unavailable for 45 seconds. Which customers fail open?"
+  },
+  {
+    "order": 3,
+    "id": "paste-service",
+    "shortTitle": "Paste service",
+    "title": "Design a secure paste service",
+    "summary": "Store snippets with expiry, access controls, and efficient retrieval for public and private pastes.",
+    "difficulty": "Foundation",
+    "category": "Core patterns",
+    "minutes": 35,
+    "scale": "20M pastes · 10:1 read/write ratio",
+    "focus": [
+      "object storage",
+      "TTL",
+      "content safety"
+    ],
+    "requirements": [
+      "Create text pastes",
+      "Optional expiry and password",
+      "Syntax-friendly display",
+      "Delete owned content"
+    ],
+    "constraints": [
+      "Strong private access",
+      "Malware and secret scanning",
+      "Cheap cold retention",
+      "Fast public reads"
+    ],
+    "checkpoints": [
+      "metadata vs blob storage",
+      "ID entropy",
+      "TTL cleanup",
+      "authorization",
+      "abuse pipeline"
+    ],
+    "interviewerPush": "How do you remove a leaked credential from caches and replicas quickly?"
+  },
+  {
+    "order": 4,
+    "id": "activity-feed",
+    "shortTitle": "Activity feed",
+    "title": "Design a personalized activity feed",
+    "summary": "Rank and deliver a fresh home feed for users who follow ordinary accounts and huge creators.",
+    "difficulty": "Intermediate",
+    "category": "Data intensive",
+    "minutes": 45,
+    "scale": "80M DAU · 12K posts/sec",
+    "focus": [
+      "fan-out",
+      "ranking",
+      "pagination"
+    ],
+    "requirements": [
+      "Publish posts",
+      "Follow accounts",
+      "Rank a home feed",
+      "Cursor pagination and hides"
+    ],
+    "constraints": [
+      "p95 under 250 ms",
+      "Fresh within seconds",
+      "Celebrity traffic",
+      "Eventual consistency"
+    ],
+    "checkpoints": [
+      "fan-out strategy",
+      "timeline store",
+      "ranking stage",
+      "cursor design",
+      "repair path"
+    ],
+    "interviewerPush": "A creator has 90 million followers. Explain the exact write and read path."
+  },
+  {
+    "order": 5,
+    "id": "chat",
+    "shortTitle": "Chat platform",
+    "title": "Design a multi-device chat platform",
+    "summary": "Support durable direct and group messages, presence, delivery receipts, and offline synchronization.",
+    "difficulty": "Intermediate",
+    "category": "Real time",
+    "minutes": 50,
+    "scale": "25M connections · 700K messages/sec",
+    "focus": [
+      "WebSocket",
+      "ordering",
+      "offline sync"
+    ],
+    "requirements": [
+      "Direct and group messages",
+      "Delivery/read state",
+      "Presence and typing",
+      "Multi-device history"
+    ],
+    "constraints": [
+      "Conversation ordering",
+      "At-least-once transport",
+      "Fast reconnect",
+      "Encrypted transport"
+    ],
+    "checkpoints": [
+      "connection gateway",
+      "message IDs",
+      "partitioning",
+      "delivery state",
+      "push notifications"
+    ],
+    "interviewerPush": "A phone reconnects after a week while another device read half the messages. How does sync work?"
+  },
+  {
+    "order": 6,
+    "id": "cloud-drive",
+    "shortTitle": "Cloud drive",
+    "title": "Design a cloud file drive",
+    "summary": "Upload large files, synchronize folders, preserve versions, and share content safely across devices.",
+    "difficulty": "Intermediate",
+    "category": "Data intensive",
+    "minutes": 50,
+    "scale": "2 PB/day ingress · files up to 100 GB",
+    "focus": [
+      "chunking",
+      "deduplication",
+      "sync conflicts"
+    ],
+    "requirements": [
+      "Resumable uploads",
+      "Folder sync",
+      "Version history",
+      "Secure sharing"
+    ],
+    "constraints": [
+      "No corrupt partial files",
+      "Duplicate efficiency",
+      "Conflict handling",
+      "Virus scanning"
+    ],
+    "checkpoints": [
+      "chunk manifest",
+      "upload protocol",
+      "metadata model",
+      "change journal",
+      "garbage collection"
+    ],
+    "interviewerPush": "Two offline laptops rename and edit the same file. What deterministic outcome do users see?"
+  },
+  {
+    "order": 7,
+    "id": "video",
+    "shortTitle": "Video streaming",
+    "title": "Design a global video streaming service",
+    "summary": "Ingest source video, transcode adaptive renditions, and stream reliably through a global edge network.",
+    "difficulty": "Intermediate",
+    "category": "Data intensive",
+    "minutes": 50,
+    "scale": "8M concurrent viewers · 5K uploads/hour",
+    "focus": [
+      "transcoding",
+      "CDN",
+      "adaptive bitrate"
+    ],
+    "requirements": [
+      "Video upload",
+      "Transcoding pipeline",
+      "Adaptive playback",
+      "Continue watching"
+    ],
+    "constraints": [
+      "Low startup delay",
+      "No single-region dependency",
+      "Cost-aware egress",
+      "DRM-ready assets"
+    ],
+    "checkpoints": [
+      "ingestion",
+      "job orchestration",
+      "segment format",
+      "CDN hierarchy",
+      "playback telemetry"
+    ],
+    "interviewerPush": "A live event attracts four times the forecast audience in one country. Walk through mitigation."
+  },
+  {
+    "order": 8,
+    "id": "autocomplete",
+    "shortTitle": "Autocomplete",
+    "title": "Design search autocomplete",
+    "summary": "Return relevant suggestions on every keystroke while learning from trends and resisting manipulation.",
+    "difficulty": "Intermediate",
+    "category": "Data intensive",
+    "minutes": 40,
+    "scale": "250K queries/sec · 20 languages",
+    "focus": [
+      "prefix index",
+      "ranking",
+      "freshness"
+    ],
+    "requirements": [
+      "Prefix suggestions",
+      "Regional trends",
+      "Personalized boosts",
+      "Safety filtering"
+    ],
+    "constraints": [
+      "p99 under 60 ms",
+      "Trend freshness under 5 min",
+      "Typo tolerance",
+      "Manipulation resistance"
+    ],
+    "checkpoints": [
+      "trie or FST",
+      "offline pipeline",
+      "edge cache",
+      "ranking features",
+      "filtering"
+    ],
+    "interviewerPush": "A breaking-news term goes from zero to dominant in three minutes. How does it enter the index?"
+  },
+  {
+    "order": 9,
+    "id": "notifications",
+    "shortTitle": "Notifications",
+    "title": "Design a notification delivery platform",
+    "summary": "Fan out transactional and bulk notifications across push, email, and SMS with preference controls.",
+    "difficulty": "Intermediate",
+    "category": "Infrastructure",
+    "minutes": 45,
+    "scale": "1B notifications/day · 300K/sec burst",
+    "focus": [
+      "queues",
+      "priorities",
+      "idempotency"
+    ],
+    "requirements": [
+      "Multi-channel delivery",
+      "Templates and locale",
+      "Preferences and quiet hours",
+      "Delivery status"
+    ],
+    "constraints": [
+      "Transactional traffic wins",
+      "No duplicate billing",
+      "Provider failover",
+      "Auditable consent"
+    ],
+    "checkpoints": [
+      "event contract",
+      "priority queues",
+      "provider adapters",
+      "dedupe key",
+      "retry and DLQ"
+    ],
+    "interviewerPush": "A marketing blast is running when password-reset traffic spikes. Show the scheduling policy."
+  },
+  {
+    "order": 10,
+    "id": "ticketing",
+    "shortTitle": "Ticketing",
+    "title": "Design a high-demand ticketing system",
+    "summary": "Sell limited seats fairly during flash demand without overselling or losing payment state.",
+    "difficulty": "Advanced",
+    "category": "Data intensive",
+    "minutes": 55,
+    "scale": "5M waiting users · 70K checkouts/sec",
+    "focus": [
+      "inventory locks",
+      "queues",
+      "sagas"
+    ],
+    "requirements": [
+      "Browse events",
+      "Hold seats",
+      "Pay and issue ticket",
+      "Cancel and refund"
+    ],
+    "constraints": [
+      "Never oversell",
+      "Fair admission",
+      "Hold expiry",
+      "Payment reconciliation"
+    ],
+    "checkpoints": [
+      "waiting room",
+      "seat state machine",
+      "hold ownership",
+      "payment saga",
+      "anti-bot"
+    ],
+    "interviewerPush": "Payment succeeds after the hold expired. What is the source of truth and recovery path?"
+  },
+  {
+    "order": 11,
+    "id": "metrics",
+    "shortTitle": "Metrics platform",
+    "title": "Design a metrics monitoring platform",
+    "summary": "Ingest high-cardinality time series, query dashboards, and evaluate alerts at operational scale.",
+    "difficulty": "Advanced",
+    "category": "Infrastructure",
+    "minutes": 55,
+    "scale": "15M samples/sec · 18-month retention",
+    "focus": [
+      "time series",
+      "downsampling",
+      "cardinality"
+    ],
+    "requirements": [
+      "Metric ingestion",
+      "Range queries",
+      "Dashboards",
+      "Rule-based alerts"
+    ],
+    "constraints": [
+      "Durable ingestion",
+      "Recent queries under 2 sec",
+      "Tiered retention",
+      "Tenant isolation"
+    ],
+    "checkpoints": [
+      "write path",
+      "series identity",
+      "storage layout",
+      "rollups",
+      "alert evaluator"
+    ],
+    "interviewerPush": "One tenant creates ten million unique label combinations. How do you contain it?"
+  },
+  {
+    "order": 12,
+    "id": "crawler",
+    "shortTitle": "Web crawler",
+    "title": "Design a polite web crawler",
+    "summary": "Discover and fetch pages at scale while respecting host limits, recrawl priorities, and duplicate content.",
+    "difficulty": "Advanced",
+    "category": "Infrastructure",
+    "minutes": 50,
+    "scale": "5B URLs · 25K fetches/sec",
+    "focus": [
+      "frontier",
+      "politeness",
+      "deduplication"
+    ],
+    "requirements": [
+      "URL discovery",
+      "Robots compliance",
+      "Content storage",
+      "Scheduled recrawl"
+    ],
+    "constraints": [
+      "Per-host limits",
+      "Avoid crawl traps",
+      "Content dedupe",
+      "Crash-safe frontier"
+    ],
+    "checkpoints": [
+      "frontier partitions",
+      "canonicalization",
+      "scheduler",
+      "fetch workers",
+      "change frequency"
+    ],
+    "interviewerPush": "A calendar exposes effectively infinite URLs. Where and how do you stop the trap?"
+  },
+  {
+    "order": 13,
+    "id": "collaborative-editor",
+    "shortTitle": "Collaborative editor",
+    "title": "Design a collaborative document editor",
+    "summary": "Enable simultaneous edits, comments, presence, and offline recovery without corrupting documents.",
+    "difficulty": "Advanced",
+    "category": "Real time",
+    "minutes": 55,
+    "scale": "200 editors/document · 2M active docs",
+    "focus": [
+      "CRDT or OT",
+      "snapshots",
+      "presence"
+    ],
+    "requirements": [
+      "Concurrent editing",
+      "Live cursors",
+      "Comments",
+      "Version restoration"
+    ],
+    "constraints": [
+      "Convergent state",
+      "Offline edits",
+      "Low interaction latency",
+      "Bounded operation log"
+    ],
+    "checkpoints": [
+      "conflict algorithm",
+      "session service",
+      "operation log",
+      "snapshots",
+      "permission changes"
+    ],
+    "interviewerPush": "An offline editor returns after access was revoked. How are local operations handled?"
+  },
+  {
+    "order": 14,
+    "id": "ride-dispatch",
+    "shortTitle": "Ride dispatch",
+    "title": "Design a ride dispatch marketplace",
+    "summary": "Match riders and nearby drivers in real time while balancing latency, fairness, and supply.",
+    "difficulty": "Advanced",
+    "category": "Real time",
+    "minutes": 55,
+    "scale": "3M drivers · 80K requests/min",
+    "focus": [
+      "geospatial",
+      "matching",
+      "state machines"
+    ],
+    "requirements": [
+      "Driver location",
+      "Ride request",
+      "Matching and offer",
+      "Trip lifecycle"
+    ],
+    "constraints": [
+      "Match under 3 sec",
+      "No double assignment",
+      "Stale GPS tolerance",
+      "Regional isolation"
+    ],
+    "checkpoints": [
+      "spatial index",
+      "location stream",
+      "dispatch window",
+      "offer lease",
+      "trip state"
+    ],
+    "interviewerPush": "A stadium empties at once. How do you prevent every rider targeting the same drivers?"
+  },
+  {
+    "order": 15,
+    "id": "ledger",
+    "shortTitle": "Payment ledger",
+    "title": "Design a payment ledger",
+    "summary": "Record money movement with immutable accounting, idempotent APIs, and robust reconciliation.",
+    "difficulty": "Advanced",
+    "category": "Data intensive",
+    "minutes": 60,
+    "scale": "35K transactions/sec · 7-year retention",
+    "focus": [
+      "double entry",
+      "idempotency",
+      "reconciliation"
+    ],
+    "requirements": [
+      "Authorize and capture",
+      "Refund",
+      "Balance query",
+      "Settlement reconciliation"
+    ],
+    "constraints": [
+      "No lost money",
+      "Immutable audit trail",
+      "Exact decimal arithmetic",
+      "Regional recovery"
+    ],
+    "checkpoints": [
+      "ledger entries",
+      "transaction boundary",
+      "idempotency keys",
+      "outbox",
+      "reconciliation"
+    ],
+    "interviewerPush": "A timeout occurs after commit but before the API response. Walk through the retry."
+  },
+  {
+    "order": 16,
+    "id": "feature-flags",
+    "shortTitle": "Feature flags",
+    "title": "Design a feature flag service",
+    "summary": "Evaluate configuration locally at huge read volume while propagating safe changes in seconds.",
+    "difficulty": "Intermediate",
+    "category": "Infrastructure",
+    "minutes": 45,
+    "scale": "10M evaluations/sec · 100K flags",
+    "focus": [
+      "control plane",
+      "data plane",
+      "rollouts"
+    ],
+    "requirements": [
+      "Boolean and multivariate flags",
+      "Targeting rules",
+      "Percentage rollout",
+      "Audit and rollback"
+    ],
+    "constraints": [
+      "Evaluation under 1 ms",
+      "SDK works offline",
+      "Consistent bucketing",
+      "Propagation under 10 sec"
+    ],
+    "checkpoints": [
+      "config model",
+      "streaming updates",
+      "SDK cache",
+      "hash bucketing",
+      "kill switch"
+    ],
+    "interviewerPush": "A malformed rule reaches 20% of SDKs. How do you stop and repair it safely?"
+  },
+  {
+    "order": 17,
+    "id": "rag",
+    "shortTitle": "RAG platform",
+    "title": "Design a multi-tenant RAG platform",
+    "summary": "Ingest private knowledge, retrieve grounded context, and produce traceable answers across many tenants.",
+    "difficulty": "Advanced",
+    "category": "AI systems",
+    "minutes": 60,
+    "scale": "50K tenants · 1B chunks · 5K queries/sec",
+    "focus": [
+      "ingestion",
+      "retrieval",
+      "evaluation"
+    ],
+    "requirements": [
+      "Document ingestion",
+      "Hybrid retrieval",
+      "Grounded generation",
+      "Citations and feedback"
+    ],
+    "constraints": [
+      "Strict tenant isolation",
+      "Fresh deletes",
+      "Prompt-injection defense",
+      "Quality evaluation"
+    ],
+    "checkpoints": [
+      "chunk pipeline",
+      "metadata ACLs",
+      "hybrid search",
+      "reranking",
+      "answer and eval loop"
+    ],
+    "interviewerPush": "A document is deleted for compliance. How do you prove it cannot appear in an answer?"
+  },
+  {
+    "order": 18,
+    "id": "model-serving",
+    "shortTitle": "Model serving",
+    "title": "Design a large-model serving gateway",
+    "summary": "Route inference across models and accelerators with batching, quotas, streaming, and graceful overload.",
+    "difficulty": "Advanced",
+    "category": "AI systems",
+    "minutes": 60,
+    "scale": "60K requests/min · mixed model fleet",
+    "focus": [
+      "continuous batching",
+      "routing",
+      "backpressure"
+    ],
+    "requirements": [
+      "Streaming generation",
+      "Model selection",
+      "Tenant quotas",
+      "Usage accounting"
+    ],
+    "constraints": [
+      "Token latency SLOs",
+      "GPU memory limits",
+      "Priority traffic",
+      "Safe retries"
+    ],
+    "checkpoints": [
+      "gateway",
+      "scheduler",
+      "batcher",
+      "KV cache",
+      "overload policy"
+    ],
+    "interviewerPush": "Premium and batch workloads compete for one GPU pool. Describe admission and preemption."
+  },
+  {
+    "id": "distributed-cache",
+    "shortTitle": "Distributed cache",
+    "title": "Design a distributed caching service",
+    "summary": "Accelerate read-heavy services while controlling stale data, hot keys, and coordinated cache misses.",
+    "difficulty": "Foundation",
+    "category": "Infrastructure",
+    "minutes": 40,
+    "scale": "4M reads/sec · 6 TB working set",
+    "focus": [
+      "eviction",
+      "consistent hashing",
+      "stampede protection"
+    ],
+    "requirements": [
+      "Get and set with TTL",
+      "Bound memory per tenant",
+      "Invalidate changed values",
+      "Add and remove cache nodes"
+    ],
+    "constraints": [
+      "p99 under 3 ms",
+      "Bounded stale reads",
+      "No cache-miss avalanche",
+      "Survive one node failure"
+    ],
+    "checkpoints": [
+      "cache-aside read path",
+      "key ownership",
+      "TTL jitter",
+      "request coalescing",
+      "node recovery"
+    ],
+    "interviewerPush": "A popular key expires while its database shard is slow. How do you prevent an outage?",
+    "order": 19
+  },
+  {
+    "id": "message-queue",
+    "shortTitle": "Message queue",
+    "title": "Design a durable message queue",
+    "summary": "Decouple producers and consumers with durable acknowledgements, partition ordering, and controlled retries.",
+    "difficulty": "Intermediate",
+    "category": "Infrastructure",
+    "minutes": 50,
+    "scale": "1M messages/sec · 7-day replay",
+    "focus": [
+      "consumer offsets",
+      "partitioning",
+      "delivery semantics"
+    ],
+    "requirements": [
+      "Publish batches",
+      "Consume with acknowledgements",
+      "Replay from an offset",
+      "Retry poison messages safely"
+    ],
+    "constraints": [
+      "No acknowledged message loss within the stated fault model",
+      "Ordering within a partition",
+      "Bound consumer lag",
+      "Tenant isolation"
+    ],
+    "checkpoints": [
+      "durability boundary",
+      "partition assignment",
+      "consumer leases",
+      "offset commit",
+      "dead-letter policy"
+    ],
+    "interviewerPush": "A consumer commits a database write and crashes before acknowledging. What prevents duplicate effects?",
+    "order": 20
+  },
+  {
+    "id": "job-scheduler",
+    "shortTitle": "Job scheduler",
+    "title": "Design a distributed job scheduler",
+    "summary": "Run delayed and recurring jobs across worker pools without losing ownership during crashes or deployments.",
+    "difficulty": "Intermediate",
+    "category": "Infrastructure",
+    "minutes": 45,
+    "scale": "100M scheduled jobs · 200K executions/min",
+    "focus": [
+      "leases",
+      "time wheels",
+      "idempotency"
+    ],
+    "requirements": [
+      "Schedule one-off jobs",
+      "Support recurring schedules",
+      "Cancel pending work",
+      "Track attempts and results"
+    ],
+    "constraints": [
+      "Bound dispatch lateness",
+      "At-least-once execution",
+      "No permanent lost leases",
+      "Explicit time-zone and DST behavior"
+    ],
+    "checkpoints": [
+      "schedule storage",
+      "due-job index",
+      "claim lease",
+      "retry backoff",
+      "clock and DST policy"
+    ],
+    "interviewerPush": "A worker pauses for two minutes, loses its lease, and then resumes. How do you fence its writes?",
+    "order": 21
+  },
+  {
+    "id": "load-balancer",
+    "shortTitle": "Load balancer",
+    "title": "Design a regional load balancer",
+    "summary": "Distribute connections across changing backend pools while handling failures, draining, and overload.",
+    "difficulty": "Foundation",
+    "category": "Infrastructure",
+    "minutes": 40,
+    "scale": "3M concurrent connections · 400K requests/sec",
+    "focus": [
+      "health checks",
+      "routing",
+      "connection draining"
+    ],
+    "requirements": [
+      "Discover backend instances",
+      "Route HTTP and long-lived connections",
+      "Drain during deployment",
+      "Expose routing metrics"
+    ],
+    "constraints": [
+      "No single routing bottleneck",
+      "Bound retry amplification",
+      "Fast backend failure detection",
+      "Tenant-aware admission"
+    ],
+    "checkpoints": [
+      "L4 versus L7 boundary",
+      "backend selection",
+      "active and passive health",
+      "drain protocol",
+      "retry budget"
+    ],
+    "interviewerPush": "One backend becomes slow without failing health checks. How does routing react without overloading the rest?",
+    "order": 22
+  },
+  {
+    "id": "dns",
+    "shortTitle": "DNS resolver",
+    "title": "Design a caching DNS resolver",
+    "summary": "Resolve names efficiently with bounded caches, safe negative answers, and resilience to upstream failures.",
+    "difficulty": "Foundation",
+    "category": "Core patterns",
+    "minutes": 35,
+    "scale": "500K lookups/sec · 20M cached records",
+    "focus": [
+      "TTL",
+      "negative caching",
+      "recursive lookup"
+    ],
+    "requirements": [
+      "Resolve common record types",
+      "Cache authoritative answers",
+      "Cache negative responses",
+      "Retry independent upstreams"
+    ],
+    "constraints": [
+      "Respect TTL and validation policy",
+      "Bound recursive work",
+      "Resist cache poisoning",
+      "Serve during partial network failure"
+    ],
+    "checkpoints": [
+      "recursive lookup flow",
+      "cache key and TTL",
+      "negative responses",
+      "upstream budget",
+      "validation boundary"
+    ],
+    "interviewerPush": "An authoritative zone is unreachable as a critical record expires. Describe the availability and freshness trade-off.",
+    "order": 23
+  },
+  {
+    "id": "product-search",
+    "shortTitle": "Product search",
+    "title": "Design an e-commerce search service",
+    "summary": "Index a changing catalog, apply filters, and rank relevant products without silently violating availability constraints.",
+    "difficulty": "Intermediate",
+    "category": "Data intensive",
+    "minutes": 50,
+    "scale": "300M products · 80K searches/sec",
+    "focus": [
+      "inverted index",
+      "CDC",
+      "ranking"
+    ],
+    "requirements": [
+      "Search text and filters",
+      "Rank products",
+      "Ingest catalog changes",
+      "Support facets and pagination"
+    ],
+    "constraints": [
+      "p95 under 200 ms",
+      "Price freshness under 30 sec",
+      "Regional availability filters",
+      "Safe index rebuilds"
+    ],
+    "checkpoints": [
+      "catalog event contract",
+      "index partitioning",
+      "retrieval and ranking",
+      "inventory verification",
+      "index version rollout"
+    ],
+    "interviewerPush": "A flash sale changes millions of prices while an index rebuild is running. Which price does checkout trust?",
+    "order": 24
+  },
+  {
+    "id": "ad-clicks",
+    "shortTitle": "Ad click analytics",
+    "title": "Design an ad click aggregation platform",
+    "summary": "Turn high-volume click events into timely reports while accounting for duplicates, late arrivals, and fraud.",
+    "difficulty": "Advanced",
+    "category": "Data intensive",
+    "minutes": 55,
+    "scale": "5M clicks/sec · 90-day raw retention",
+    "focus": [
+      "event time",
+      "deduplication",
+      "stream processing"
+    ],
+    "requirements": [
+      "Ingest clicks",
+      "Aggregate by campaign and minute",
+      "Correct late events",
+      "Replay historical windows"
+    ],
+    "constraints": [
+      "Auditable billing aggregates",
+      "Reports fresh within 60 sec",
+      "Bound deduplication state",
+      "Tenant-level isolation"
+    ],
+    "checkpoints": [
+      "event identity",
+      "partition key",
+      "watermarks",
+      "idempotent sink",
+      "reconciliation"
+    ],
+    "interviewerPush": "A region replays six hours of buffered events. How do you correct dashboards without double billing?",
+    "order": 25
+  },
+  {
+    "id": "log-pipeline",
+    "shortTitle": "Log ingestion",
+    "title": "Design a centralized log pipeline",
+    "summary": "Collect application logs, redact sensitive fields, and search recent events while keeping retention costs predictable.",
+    "difficulty": "Intermediate",
+    "category": "Infrastructure",
+    "minutes": 50,
+    "scale": "8 TB/day · 30-day searchable retention",
+    "focus": [
+      "backpressure",
+      "indexing",
+      "retention"
+    ],
+    "requirements": [
+      "Collect structured logs",
+      "Search recent events",
+      "Archive older events",
+      "Apply redaction rules"
+    ],
+    "constraints": [
+      "Bound impact on application threads",
+      "Tenant isolation",
+      "Explicit loss policy under overload",
+      "Queryable ingestion lag"
+    ],
+    "checkpoints": [
+      "agent buffer",
+      "durable transport",
+      "redaction stage",
+      "hot and cold storage",
+      "overload policy"
+    ],
+    "interviewerPush": "A debug rollout increases logs by twenty times. Which records are sampled, buffered, or rejected?",
+    "order": 26
+  },
+  {
+    "id": "unique-ids",
+    "shortTitle": "Unique ID generator",
+    "title": "Design a distributed unique ID service",
+    "summary": "Generate compact identifiers across regions while making ordering, collision, and clock assumptions explicit.",
+    "difficulty": "Foundation",
+    "category": "Core patterns",
+    "minutes": 35,
+    "scale": "2M IDs/sec · 5 regions",
+    "focus": [
+      "bit allocation",
+      "clock rollback",
+      "worker identity"
+    ],
+    "requirements": [
+      "Generate IDs in batches",
+      "Provide documented ordering",
+      "Assign worker identities",
+      "Recover after process restart"
+    ],
+    "constraints": [
+      "No collisions under the fault model",
+      "Low generation latency",
+      "Bound timestamp exposure",
+      "Defined clock rollback behavior"
+    ],
+    "checkpoints": [
+      "ID format",
+      "throughput bit budget",
+      "worker lease",
+      "sequence exhaustion",
+      "restart safety"
+    ],
+    "interviewerPush": "Two nodes start with the same worker ID while one clock moves backwards. How do you preserve uniqueness?",
+    "order": 27
+  },
+  {
+    "id": "webhooks",
+    "shortTitle": "Webhook delivery",
+    "title": "Design a reliable webhook platform",
+    "summary": "Deliver signed events to customer endpoints with per-destination retries, replay, and failure visibility.",
+    "difficulty": "Intermediate",
+    "category": "Infrastructure",
+    "minutes": 45,
+    "scale": "200K events/sec · 500K destinations",
+    "focus": [
+      "signatures",
+      "retry backoff",
+      "deduplication"
+    ],
+    "requirements": [
+      "Register verified endpoints",
+      "Deliver signed events",
+      "Retry and replay deliveries",
+      "Expose delivery history"
+    ],
+    "constraints": [
+      "At-least-once delivery",
+      "Prevent internal-network requests",
+      "Per-tenant fairness",
+      "Bound retry amplification"
+    ],
+    "checkpoints": [
+      "event and delivery IDs",
+      "destination verification",
+      "signature rotation",
+      "retry scheduler",
+      "dead-letter replay"
+    ],
+    "interviewerPush": "A customer endpoint is down for a day and recovers during peak traffic. How do you drain the backlog fairly?",
+    "order": 28
+  },
+  {
+    "id": "location-sharing",
+    "shortTitle": "Live location",
+    "title": "Design a live location sharing service",
+    "summary": "Share current positions with chosen viewers while handling moving connections, stale updates, and revoked access.",
+    "difficulty": "Intermediate",
+    "category": "Real time",
+    "minutes": 45,
+    "scale": "10M active sharers · one update every 5 sec",
+    "focus": [
+      "geospatial",
+      "presence",
+      "privacy"
+    ],
+    "requirements": [
+      "Start expiring sharing sessions",
+      "Stream position updates",
+      "Fetch latest authorized position",
+      "Revoke viewer access"
+    ],
+    "constraints": [
+      "Reject out-of-order positions",
+      "Explicit stale-position indicator",
+      "Low battery and network overhead",
+      "Prompt access revocation"
+    ],
+    "checkpoints": [
+      "session authorization",
+      "location sequence",
+      "spatial partition",
+      "viewer fan-out",
+      "expiry and revocation"
+    ],
+    "interviewerPush": "A viewer loses access while offline, then reconnects through a different region. Where is permission rechecked?",
+    "order": 29
+  },
+  {
+    "id": "ai-evaluation",
+    "shortTitle": "AI evaluation",
+    "title": "Design an AI evaluation platform",
+    "summary": "Compare model and prompt versions with reproducible datasets, asynchronous runs, and calibrated quality measurements.",
+    "difficulty": "Advanced",
+    "category": "AI systems",
+    "minutes": 55,
+    "scale": "10M test cases/day · 2K concurrent runs",
+    "focus": [
+      "dataset versions",
+      "job orchestration",
+      "calibration"
+    ],
+    "requirements": [
+      "Version test datasets",
+      "Run model comparisons",
+      "Track quality, cost, and latency",
+      "Review disagreements manually"
+    ],
+    "constraints": [
+      "Reproducible run manifests",
+      "Isolate sensitive evaluation data",
+      "Bound provider spend",
+      "Detect judge drift"
+    ],
+    "checkpoints": [
+      "run identity",
+      "work queue",
+      "artifact lineage",
+      "judge calibration",
+      "release gates"
+    ],
+    "interviewerPush": "A new automated judge reverses the ranking of two models. How do you distinguish an improvement from evaluator drift?",
+    "order": 30
+  }
+]
