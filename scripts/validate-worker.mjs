@@ -24,7 +24,7 @@ const missingKey = await worker.fetch(new Request("https://architect-lab.test/ap
   body: JSON.stringify({ problem: { id: "short-links" }, answer: "A".repeat(140) }),
 }), {}, {});
 
-if (home.status !== 200 || !(await home.text()).includes("Architect Lab")) throw new Error("Home smoke test failed.");
+if (home.status !== 200 || !(await home.text()).includes("ScaleSketch")) throw new Error("Home smoke test failed.");
 if (css.status !== 200 || !(await css.text()).includes("--lime")) throw new Error("CSS smoke test failed.");
 if (clientScript.status !== 200) throw new Error("Client JavaScript route failed.");
 const syntax = spawnSync(process.execPath, ["--check", "--input-type=module"], { input: await clientScript.text(), encoding: "utf8" });

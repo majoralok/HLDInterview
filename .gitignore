@@ -94,3 +94,9 @@ Desktop.ini
 *.p12
 *.pfx
 .envrc
+
+# Local reference checkouts; their ideas are documented in docs/reference-analysis.md.
+/SystemDesign.ai-main/
+/system-design-simulator-main/
+/arch-review-main/
+scalesketch-*.json

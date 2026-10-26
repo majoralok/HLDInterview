@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Architect Lab — System Design Practice",
+  title: "ScaleSketch — Draw. Reason. Design at scale.",
   description:
-    "A local-first system design interview studio with guided practice, progress tracking, and AI coaching.",
+    "Practice system design with a visual architecture canvas, traffic and failure experiments, guided interviews, and evidence-based AI reviews.",
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",

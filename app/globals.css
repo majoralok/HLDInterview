@@ -1,5 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "../public/architecture-workbench.css";
+@import "../public/design-session.css";
 @import "../vendor/shadcn-tailwind-4.13.0.css";
 
 :root {

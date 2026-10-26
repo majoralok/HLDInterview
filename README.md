@@ -1,12 +1,22 @@
-# Architect Lab
+# ScaleSketch
 
-Architect Lab is a local-first system design interview studio. It combines a curated roadmap with timed practice, structured answer templates, progress tracking, an offline rubric, and optional AI feedback through the OpenAI Responses API.
+**Draw. Reason. Design at scale.** ScaleSketch (formerly Architect Lab) is a local-first system design practice studio. Draw an architecture, explain your decisions, explore traffic and failures, then improve it with evidence-based AI feedback.
+
+The upgrade draws on the three local reference projects. See [the feature comparison and naming notes](docs/reference-analysis.md) for what was adopted, the source files inspected, and the boundaries of the implementation.
 
 The idea was inspired by [ScaleMock's system design sheet](https://www.scalemock.com/sheet/system-design). Architect Lab has its own interface, wording, question briefs, scoring flow, and implementation.
 
 ## What is included
 
 - 30 curated HLD challenges across core patterns, infrastructure, real-time systems, data-intensive systems, and AI systems
+- visual architecture canvas with 12 component types, pointer/touch dragging, background panning, zoom/fit, keyboard movement, undo/redo, and JSON import/export
+- labeled directed connections with protocol, synchronous/asynchronous mode, and traffic share for cache misses or sampled work
+- editable component responsibilities, replica counts, capacity, and base latency assumptions
+- connectivity-aware traffic lab with bottlenecks, disconnected-node warnings, cycle detection, and component failure drills
+- back-of-envelope QPS, storage, and bandwidth calculator with explicit units and assumptions
+- five guided interview phases, challenge brief, design notes, and review views accessible on mobile
+- grounded AI findings ranked by severity across reliability, scalability, security, cost, operability, and maintainability; invented evidence quotes are dropped server-side
+- Markdown review export in the framework studio
 - search plus difficulty, category, and bookmark filters
 - browser-local completion, attempt, score, draft, and bookmark persistence
 - portable JSON progress export and validated import (backup entries replace matching local entries)
@@ -37,7 +47,9 @@ OPENAI_API_KEY=your-server-side-key
 OPENAI_MODEL=gpt-5-mini
 ```
 
-Without a key, all study, timer, notes, progress, export, and local-rubric features still work.
+Without a key, all drawing, simulation, study, timer, notes, progress, export, and offline coverage features still work. Existing Architect Lab progress and version 1 backups remain compatible; diagrams are an optional field on each progress entry.
+
+The traffic lab is an illustrative DAG model, not a load test. Capacities are editable assumptions, replicas scale linearly in the model, fan-in sums calls, failed components stop forwarding, and async branches do not contribute to synchronous base latency. Database write scaling, queue dynamics, automatic failover, and latency percentiles require separate reasoning. The assumptions are also visible in the interface.
 
 For the dependency-free Worker version (no package install required), run:
 
@@ -92,6 +104,14 @@ npm run check
 
 `npm test` runs Python unit tests and HTTP integration checks against the built Worker. Node is used to execute the browser logic under test. No paid API calls or Python packages are required. `npm run check` checks the framework; run `npm test` separately.
 
+For browser integration checks on Windows with Edge installed, start both local servers (`npm run dev` and `npm run dev:worker`) in separate terminals, then run:
+
+```bash
+node scripts/smoke-browser.mjs
+```
+
+This uses a fresh temporary Edge profile and intercepts review calls with a local fixture. It checks drawing, editing, pointer dragging, traffic controls, undo/redo, graph persistence, review payloads, and 390px layouts in both variants. Set `BROWSER_PATH` for a different installed Chromium browser, or pass a server URL to test one variant. Screenshots go to ignored `outputs/`. These checks validate integration, not the quality of a live model's judgments.
+
 ## Prepare for GitHub
 
 ```bash
@@ -138,9 +158,9 @@ Deploy the generated Worker artifacts from `dist/` with the provider's Worker de
 
 ## Data and privacy
 
-Progress and drafts live in browser `localStorage` under `architect-lab-progress-v1`. They are sent nowhere unless the user clicks **AI review**. That action sends only the selected question ID and current answer to this app's server route. The server resolves its own trusted question brief and calls OpenAI with `store: false`. Import and export stay in the browser. Backups contain your drafts; keep them private.
+Progress, notes, and diagrams live in browser `localStorage` under the existing `architect-lab-progress-v1` key. They are sent nowhere unless the user requests AI review. That action sends the selected question ID, notes, and validated diagram to this app's server route. The server resolves its own trusted brief and serializes diagram structure into the review input, then calls OpenAI with `store: false`. Import and export stay in the browser. Backups contain your drafts and diagrams; keep them private.
 
-The app remains useful without AI. The local rubric measures keyword coverage rather than correctness, and the timer continues to account for elapsed time when a background tab is throttled. Storage failures are shown in the interface so you can export a backup.
+The offline rubric measures coverage in your own notes and component rationale; generated component labels and capacity defaults do not earn coverage points. It also reports graph reachability, capacity risks, and recovery prompts. A diagram-only submission can receive a 0 coverage score despite a connected graph, because reasoning still needs to be explained. The timer accounts for elapsed wall time in background tabs. Storage failures are shown in the interface so you can export a backup.
 
 For shared multi-user deployments, replace browser persistence with an authenticated database before promising cross-device sync. The current local-first behavior is deliberate and is clearly disclosed in the UI.
 

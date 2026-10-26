@@ -1,0 +1,12 @@
+export type DiagramNode = { id: string; type: string; label: string; notes: string; x: number; y: number; capacity: number; replicas: number; latency: number };
+export type DiagramEdge = { id: string; source: string; target: string; protocol: string; async: boolean; fraction: number };
+export type Diagram = { version: number; nodes: DiagramNode[]; edges: DiagramEdge[]; traffic: number };
+export const COMPONENTS: { type: string; label: string; icon: string; capacity: number; latency: number; color: string; tip: string }[];
+export const PHASES: { name: string; share: number; prompt: string }[];
+export function phaseAt(elapsed: number, total: number): number;
+export function emptyDiagram(): Diagram;
+export function parseDiagram(value: unknown): Diagram;
+export function describeDiagram(diagram?: Diagram): string;
+export function designSubmission(answer: string, diagram?: Diagram): string;
+export function estimateCapacity(daily: number, peak: number, bytes: number, days: number): { averageQps: number; peakQps: number; storageGB: number; bandwidthMbps: number };
+export function analyzeDiagram(diagram: Diagram, failedId?: string): { metrics: { id: string; qps: number; capacity: number; utilization: number; dropped: number; latency: number | null; failed: boolean }[]; warnings: string[]; latency: number | null; bottlenecks: string[]; disconnected: string[]; cyclic: boolean };

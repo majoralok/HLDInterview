@@ -66,7 +66,7 @@ class WorkerTests(unittest.TestCase):
     def test_routes_curriculum_and_python_lessons(self):
         status, headers, home = self.request('/')
         self.assertEqual(status, 200)
-        self.assertIn(b'Architect Lab', home)
+        self.assertIn(b'ScaleSketch', home)
         self.assertIn("script-src 'self'", headers['Content-Security-Policy'])
         _, _, body = self.request('/api/problems')
         problems = json.loads(body)
@@ -74,7 +74,7 @@ class WorkerTests(unittest.TestCase):
         self.assertEqual(len({problem['id'] for problem in problems}), 30)
         _, _, lessons = self.request('/api/lessons')
         self.assertEqual(set(json.loads(lessons)), {problem['id'] for problem in problems})
-        for route in ['/app.js', '/app.css', '/practice-core.js']:
+        for route in ['/app.js', '/app.css', '/practice-core.js', '/architecture-core.js', '/architecture-workbench.js', '/architecture-workbench.css']:
             self.assertEqual(self.request(route)[0], 200)
 
     def test_missing_key_returns_safe_fallback(self):
@@ -136,3 +136,25 @@ console.log(JSON.stringify({status:first.status,title:brief.title,requirements:b
         self.assertEqual(data['title'], 'Design a multi-device chat platform')
         self.assertNotIn('Injected', data['requirements'])
         self.assertEqual((data['badScore'], data['badList']), (502, 502))
+
+    def test_diagram_is_validated_and_reaches_the_grounded_reviewer(self):
+        program = '''
+import worker from "./dist/server/index.js";
+let sent;
+globalThis.fetch=async(_url,options)=>{sent=JSON.parse(options.body);return Response.json({output_text:JSON.stringify({score:60,summary:"Mock",strengths:[],improvements:[],followUp:"Recovery?",findings:[
+  {severity:"high",dimension:"reliability",title:"Check failover",evidence:"Orders database",recommendation:"Specify recovery"},
+  {severity:"high",dimension:"security",title:"Invented",evidence:"public admin password",recommendation:"Fix"}]})});};
+const diagram={version:1,traffic:1000,nodes:[{id:"db",type:"database",label:"Orders database",notes:"",x:0,y:0,capacity:2000,replicas:1,latency:8}],edges:[]};
+const req=d=>new Request("https://test.local/api/coach",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({problem:{id:"chat"},answer:"",diagram:d})});
+const valid=await worker.fetch(req(diagram),{OPENAI_API_KEY:"local-test-only"});
+const result=await valid.json();
+const invalid=await worker.fetch(req({...diagram,edges:[{id:"bad",source:"db",target:"missing",protocol:"SQL",async:false,fraction:1}]}),{OPENAI_API_KEY:"local-test-only"});
+console.log(JSON.stringify({status:valid.status,answer:JSON.parse(sent.input).candidateAnswer,result,invalid:invalid.status,store:sent.store}));
+'''
+        run = subprocess.run(['node', '--input-type=module'], input=program, capture_output=True, text=True, cwd=ROOT, check=True)
+        result = json.loads(run.stdout)
+        self.assertEqual(result['status'], 200)
+        self.assertEqual(result['invalid'], 400)
+        self.assertIn('Orders database', result['answer'])
+        self.assertEqual(len(result['result']['findings']), 1)
+        self.assertFalse(result['store'])

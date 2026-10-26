@@ -4,8 +4,9 @@
 
 ```text
 Browser
-  ├─ roadmap, filters, timer, editor
-  ├─ localStorage progress + drafts
+  ├─ roadmap, filters, timer, guided phases
+  ├─ shared SVG workbench, traffic lab, estimates
+  ├─ localStorage progress + notes + diagrams
   └─ POST /api/coach (explicit action only)
                  │
                  ▼
@@ -16,7 +17,7 @@ Cloudflare Worker / Vinext server
   └─ POST https://api.openai.com/v1/responses
                  │
                  ▼
-Structured review JSON → validation → browser
+Structured review JSON → validation → evidence grounding → browser
 ```
 
 Two delivery paths implement this boundary:
@@ -26,7 +27,9 @@ Two delivery paths implement this boundary:
 
 `data/problems.json` is the single curriculum source. `examples/python/patterns.py` contains runnable teaching models; the Python builder extracts their source and combines it with the challenge-specific lesson mappings. The generated `data/python-lessons.json` is tracked for framework builds. `public/practice-core.js` owns backup validation, template exclusion, coverage scoring, and feedback validation for both interfaces. `lib/review-request.js` validates both server routes.
 
-Both preserve the same privacy rule: only an explicit AI-review action sends the current answer to the server.
+`public/architecture-core.js` owns diagram validation, graph serialization, phase selection, capacity math, and deterministic traffic analysis. `public/architecture-workbench.js` renders the same DOM/SVG workbench in React (via `components/architecture-canvas.tsx`) and the standalone Worker. `lib/review-contract.js` owns the schema, instructions, and evidence grounding, shared by both server routes. The Worker builder inlines these modules on the server and serves their browser sources as self-hosted modules.
+
+Both preserve the same privacy rule: only an explicit AI-review action sends the current notes and diagram to the server.
 
 ## Design choices
 
@@ -52,7 +55,7 @@ The in-memory limiter is intentionally best-effort because Worker isolates do no
 ## Extension points
 
 1. Add D1/Postgres persistence keyed by authenticated user ID for cross-device sync.
-2. Add a diagram canvas and store its serialized graph with each attempt.
+2. Add complete per-attempt diagram snapshots and comparative review history.
 3. Add voice input through a realtime API as a separate, permissioned feature.
 4. Add team rubrics and anonymized calibration sets for evaluator quality.
 5. Add per-attempt history and rubric calibration against human-reviewed designs.

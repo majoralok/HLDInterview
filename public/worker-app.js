@@ -1,10 +1,13 @@
 import { parseProgress, parseImport, MAX_IMPORT_BYTES, writtenAnswer, localAssessment, isFeedback } from "/practice-core.js";
+import { emptyDiagram, designSubmission, PHASES, phaseAt } from "/architecture-core.js";
+import { createWorkbench } from "/architecture-workbench.js";
 
 const KEY = "architect-lab-progress-v1";
 const $ = selector => document.querySelector(selector);
 const esc = value => String(value).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
 let problems = [], lessons = {}, progress = {}, selected = "", savedOnly = false;
 let timerId, seconds = 2700, running = false, deadline = 0, reviewing = false, returnFocus;
+let workbench, diagram = emptyDiagram();
 
 function notice(message) {
   $("#storage-message").textContent = message;
@@ -76,8 +79,11 @@ function openRoom(id) {
   clearInterval(timerId);
   timerId = setInterval(tick, 250);
   $("#modal").hidden = false;
+  diagram = item.diagram ?? emptyDiagram();
+  workbench?.destroy();
+  workbench = createWorkbench($("#architecture-host"), { value: diagram, onChange: value => { diagram = value; progress[selected] = { ...entry(selected), diagram }; save(); } });
   document.body.style.overflow = "hidden";
-  $("#answer").focus();
+  $("#close").focus();
   patch(id, { status: item.status === "todo" ? "in_progress" : item.status });
 }
 function closeRoom() {
@@ -100,6 +106,8 @@ function showTime() {
   $("#timer").textContent = String(Math.floor(seconds / 60)).padStart(2, "0") + ":" + String(seconds % 60).padStart(2, "0");
   $("#pause").textContent = running ? "Ⅱ" : "▶";
   $("#pause").setAttribute("aria-label", running ? "Pause timer" : "Resume timer");
+  const problem = problems.find(p => p.id === selected);
+  if (problem) { const phase = PHASES[phaseAt(problem.minutes * 60 - seconds, problem.minutes * 60)]; $("#phase-guide").innerHTML = `<div class="worker-phase"><b>${esc(phase.name)}</b>${esc(phase.prompt)}</div>`; }
 }
 function showError(message) {
   $("#feedback-body").className = "";
@@ -108,7 +116,7 @@ function showError(message) {
 function showReview(review) {
   $("#score").textContent = review.score + "/100";
   $("#feedback-body").className = "";
-  $("#feedback-body").innerHTML = `<p class="review-summary">${esc(review.summary)}</p><div class="review-section"><b>What worked</b><ul>${review.strengths.map(item => `<li>${esc(item)}</li>`).join("")}</ul></div><div class="review-section"><b>Make it stronger</b><ul>${review.improvements.map(item => `<li>${esc(item)}</li>`).join("")}</ul></div><div class="followup"><b>Next question</b><p>${esc(review.followUp)}</p></div>`;
+  $("#feedback-body").innerHTML = `<p class="review-summary">${esc(review.summary)}</p><div class="review-section"><b>What worked</b><ul>${review.strengths.map(item => `<li>${esc(item)}</li>`).join("")}</ul></div><div class="review-section"><b>Make it stronger</b><ul>${review.improvements.map(item => `<li>${esc(item)}</li>`).join("")}</ul></div>${(review.findings ?? []).map(f => `<article class="worker-finding"><small>${esc(f.severity)} · ${esc(f.dimension)}</small><b>${esc(f.title)}</b>${f.evidence.trim().toLowerCase() === "general" ? "<p>Not specified in this submission</p>" : `<blockquote>${esc(f.evidence)}</blockquote>`}<p>${esc(f.recommendation)}</p></article>`).join("")}<div class="followup"><b>Next question</b><p>${esc(review.followUp)}</p></div>`;
 }
 function complete(review, id, answer) {
   const item = entry(id);
@@ -120,21 +128,22 @@ function complete(review, id, answer) {
 function localReview() {
   if (reviewing) return;
   const problem = problems.find(item => item.id === selected), answer = $("#answer").value;
-  try { complete(localAssessment(answer, problem, template(problem)), selected, answer); }
+  try { complete(localAssessment(answer, problem, template(problem), diagram), selected, answer); }
   catch (error) { showError(error.message); }
 }
 async function aiReview() {
   if (reviewing) return;
   const id = selected, answer = $("#answer").value, problem = problems.find(item => item.id === id);
-  if (writtenAnswer(answer, template(problem)).replace(/\s/g, "").length < 120) {
+  if (writtenAnswer(designSubmission(answer, diagram), template(problem)).replace(/\s/g, "").length < 120) {
     showError("Write at least 120 non-whitespace characters of your own design before requesting feedback.");
     return;
   }
   reviewing = true;
+  workbench?.setDisabled(true);
   for (const selector of ["#ai-review", "#local-review", "#close", "#xclose", "#answer"]) $(selector).disabled = true;
   $("#ai-review").textContent = "Reviewing…";
   try {
-    const response = await fetch("/api/coach", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ problem: { id }, answer }) });
+    const response = await fetch("/api/coach", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ problem: { id }, answer, diagram }) });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "Review failed.");
     if (!isFeedback(data)) throw new Error("The reviewer returned invalid feedback.");
@@ -142,6 +151,7 @@ async function aiReview() {
   } catch (error) { showError(error.message); }
   finally {
     reviewing = false;
+    workbench?.setDisabled(false);
     for (const selector of ["#ai-review", "#local-review", "#close", "#xclose", "#answer"]) $(selector).disabled = false;
     $("#ai-review").textContent = "AI review ✦";
   }
@@ -150,7 +160,7 @@ function exportData() {
   const blob = new Blob([JSON.stringify({ version: 1, exportedAt: new Date().toISOString(), progress }, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob), anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = "architect-lab-progress.json";
+  anchor.download = "scalesketch-progress.json";
   anchor.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
@@ -194,7 +204,7 @@ document.addEventListener("keydown", event => {
   if ($("#modal").hidden) return;
   if (event.key === "Escape") closeRoom();
   if (event.key !== "Tab") return;
-  const controls = [...$("#modal").querySelectorAll("button:not(:disabled),textarea:not(:disabled)")].filter(element => element.getClientRects().length);
+  const controls = [...$("#modal").querySelectorAll("button:not(:disabled),textarea:not(:disabled),input:not(:disabled),select:not(:disabled),summary,[tabindex='0']")].filter(element => element.getClientRects().length);
   const first = controls[0], last = controls[controls.length - 1];
   if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
   if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }

@@ -4,7 +4,6 @@ import {
   ArrowRight,
   Bookmark,
   Check,
-  ChevronLeft,
   Circle,
   Clock3,
   Download,
@@ -12,9 +11,7 @@ import {
   Gauge,
   LayoutDashboard,
   Menu,
-  Pause,
   Play,
-  RotateCcw,
   Search,
   Sparkles,
   Target,
@@ -23,6 +20,10 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Category, DesignProblem, Difficulty } from "@/lib/problem-bank";
+import { DesignSession } from "./design-session";
+import { emptyDiagram, designSubmission } from "@/public/architecture-core.js";
+import type { Diagram } from "@/public/architecture-core.js";
+import type { Feedback } from "@/public/practice-core.js";
 import lessons from "@/data/python-lessons.json";
 import { parseProgress, parseImport, MAX_IMPORT_BYTES, localAssessment, writtenAnswer, isFeedback } from "@/public/practice-core.js";
 
@@ -34,16 +35,9 @@ type ProgressEntry = {
   attempts: number;
   lastPracticed?: string;
   draft?: string;
+  diagram?: Diagram;
 };
 type ProgressMap = Record<string, ProgressEntry>;
-type Feedback = {
-  score: number;
-  summary: string;
-  strengths: string[];
-  improvements: string[];
-  followUp: string;
-};
-
 const STORAGE_KEY = "architect-lab-progress-v1";
 const emptyProgress = (): ProgressEntry => ({ status: "todo", bookmarked: false, attempts: 0 });
 
@@ -57,12 +51,6 @@ function nextStatus(status: ProgressStatus): ProgressStatus {
   if (status === "todo") return "in_progress";
   if (status === "in_progress") return "done";
   return "todo";
-}
-
-function formatClock(seconds: number) {
-  const minutes = Math.floor(seconds / 60).toString().padStart(2, "0");
-  const remainder = (seconds % 60).toString().padStart(2, "0");
-  return `${minutes}:${remainder}`;
 }
 
 function starterTemplate(problem: DesignProblem) {
@@ -81,6 +69,7 @@ export function PracticeStudio({ problems }: { problems: DesignProblem[] }) {
   const [secondsLeft, setSecondsLeft] = useState(45 * 60);
   const [running, setRunning] = useState(false);
   const [answer, setAnswer] = useState("");
+  const [diagram, setDiagram] = useState<Diagram>(emptyDiagram);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [reviewing, setReviewing] = useState(false);
   const [reviewError, setReviewError] = useState("");
@@ -130,7 +119,7 @@ export function PracticeStudio({ problems }: { problems: DesignProblem[] }) {
     const previous = document.activeElement as HTMLElement | null;
     const overflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    dialog.current?.querySelector("textarea")?.focus();
+    dialog.current?.querySelector<HTMLElement>("button")?.focus();
     return () => { document.body.style.overflow = overflow; previous?.focus(); };
   }, [mockOpen]);
 
@@ -138,7 +127,7 @@ export function PracticeStudio({ problems }: { problems: DesignProblem[] }) {
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape" && mockOpen) closeMock();
       if (event.key === "Tab" && mockOpen && dialog.current) {
-        const controls = Array.from(dialog.current.querySelectorAll<HTMLElement>("button:not(:disabled), textarea:not(:disabled)"))
+        const controls = Array.from(dialog.current.querySelectorAll<HTMLElement>("button:not(:disabled), textarea:not(:disabled), input:not(:disabled), select:not(:disabled), summary, [tabindex='0']"))
           .filter((element) => element.getClientRects().length);
         const first = controls[0], last = controls[controls.length - 1];
         if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
@@ -184,6 +173,7 @@ export function PracticeStudio({ problems }: { problems: DesignProblem[] }) {
     setSelectedId(problem.id);
     const entry = progress[problem.id] ?? emptyProgress();
     setAnswer(entry.draft ?? starterTemplate(problem));
+    setDiagram(entry.diagram ?? emptyDiagram());
     setSecondsLeft(problem.minutes * 60);
     setFeedback(null);
     setReviewError("");
@@ -200,7 +190,7 @@ export function PracticeStudio({ problems }: { problems: DesignProblem[] }) {
   function finishLocally() {
     if (reviewing) return;
     let review: Feedback;
-    try { review = localAssessment(answer, selected, starterTemplate(selected)); }
+    try { review = localAssessment(answer, selected, starterTemplate(selected), diagram); }
     catch (error) { setReviewError(error instanceof Error ? error.message : "Could not assess this answer."); return; }
     setReviewError("");
     const score = review.score;
@@ -218,7 +208,7 @@ export function PracticeStudio({ problems }: { problems: DesignProblem[] }) {
 
   async function requestAiReview() {
     if (reviewing) return;
-    if (writtenAnswer(answer, starterTemplate(selected)).replace(/\s/g, "").length < 120) {
+    if (writtenAnswer(designSubmission(answer, diagram), starterTemplate(selected)).replace(/\s/g, "").length < 120) {
       setReviewError("Write at least 120 non-whitespace characters of your own design before requesting feedback.");
       return;
     }
@@ -228,7 +218,7 @@ export function PracticeStudio({ problems }: { problems: DesignProblem[] }) {
       const response = await fetch("/api/coach", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ problem: { id: selected.id }, answer }),
+        body: JSON.stringify({ problem: { id: selected.id }, answer, diagram }),
       });
       const payload = (await response.json()) as Feedback & { error?: string };
       if (!response.ok) throw new Error(payload.error || "Review failed. Try again.");
@@ -259,7 +249,7 @@ export function PracticeStudio({ problems }: { problems: DesignProblem[] }) {
     const url = URL.createObjectURL(new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" }));
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `architect-lab-${new Date().toISOString().slice(0, 10)}.json`;
+    anchor.download = `scalesketch-${new Date().toISOString().slice(0, 10)}.json`;
     anchor.click();
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
@@ -275,15 +265,15 @@ export function PracticeStudio({ problems }: { problems: DesignProblem[] }) {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--canvas)] text-[var(--ink)]">
+    <div className="min-h-screen bg-[var(--canvas)] text-[var(--ink)]" data-ready={hydrated ? "true" : "false"}>
       <header className="sticky top-0 z-40 border-b border-[var(--line)] bg-[color:var(--canvas)/88%] backdrop-blur-xl">
         <div className="mx-auto flex h-[72px] max-w-[1480px] items-center justify-between px-5 lg:px-8">
-          <a href="#top" className="group flex items-center gap-3" aria-label="Architect Lab home">
+          <a href="#top" className="group flex items-center gap-3" aria-label="ScaleSketch home">
             <span className="grid size-10 place-items-center rounded-xl bg-[var(--ink)] text-[var(--lime)] shadow-[4px_4px_0_var(--lime)] transition-transform group-hover:-translate-y-0.5">
               <LayoutDashboard size={20} strokeWidth={2.4} />
             </span>
             <span>
-              <span className="block font-[var(--font-display)] text-lg font-bold leading-none tracking-tight">Architect Lab</span>
+              <span className="block font-[var(--font-display)] text-lg font-bold leading-none tracking-tight">ScaleSketch</span>
               <span className="mt-1 block text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--muted-ink)]">System design studio</span>
             </span>
           </a>
@@ -328,7 +318,7 @@ export function PracticeStudio({ problems }: { problems: DesignProblem[] }) {
               Think clearly.<br />Design <span className="text-[var(--orange)]">at scale.</span>
             </h1>
             <p className="mt-7 max-w-2xl text-lg leading-8 text-[var(--muted-ink)] lg:text-xl">
-              A focused system design workspace that turns a question bank into deliberate practice—complete with timed rounds, decision checkpoints, and an AI interviewer when you want one.
+              Draw the system. Trace the requests. Defend the trade-offs. Turn 30 real-world challenges into deliberate practice with a visual canvas, traffic experiments, and evidence-based AI review.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <button className="primary-button large" onClick={() => openMock(selected)}><Play size={17} fill="currentColor" /> Begin practice</button>
@@ -484,54 +474,16 @@ export function PracticeStudio({ problems }: { problems: DesignProblem[] }) {
       </main>
 
       <footer className="border-t border-[var(--line)] px-5 py-7 text-center text-xs text-[var(--muted-ink)]">
-        Architect Lab · local-first by design · your answers remain in your browser unless you request an AI review
+        ScaleSketch · local-first by design · your answers remain in your browser unless you request an AI review
       </footer>
 
       {mockOpen && (
         <div ref={dialog} className="fixed inset-0 z-50 flex bg-[rgba(10,16,13,0.78)] p-0 backdrop-blur-sm sm:p-5" role="dialog" aria-modal="true" aria-labelledby="mock-title">
-          <div className="m-auto flex h-full w-full max-w-[1440px] flex-col overflow-hidden bg-[var(--canvas)] shadow-2xl sm:h-[calc(100vh-40px)] sm:rounded-[26px]">
-            <header className="flex min-h-[72px] items-center justify-between gap-4 border-b border-[var(--line)] px-4 sm:px-6">
-              <div className="flex min-w-0 items-center gap-3">
-                <button className="icon-button" onClick={closeMock} disabled={reviewing} aria-label="Close practice room"><ChevronLeft size={19} /></button>
-                <div className="min-w-0"><p className="overline">Live practice</p><h2 id="mock-title" className="truncate font-[var(--font-display)] text-base font-bold sm:text-lg">{selected.title}</h2></div>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className={`timer ${secondsLeft < 300 ? "urgent" : ""}`}><Clock3 size={16} /> {formatClock(secondsLeft)}</div>
-                <button className="icon-button" onClick={() => setRunning((value) => !value)} aria-label={running ? "Pause timer" : "Start timer"}>{running ? <Pause size={17} /> : <Play size={17} />}</button>
-                <button className="icon-button hidden sm:grid" onClick={() => setSecondsLeft(selected.minutes * 60)} aria-label="Reset timer"><RotateCcw size={17} /></button>
-                <button className="icon-button" onClick={closeMock} disabled={reviewing} aria-label="Close"><X size={18} /></button>
-              </div>
-            </header>
-
-            <div className="grid min-h-0 flex-1 lg:grid-cols-[330px_minmax(0,1fr)_360px]">
-              <aside className="hidden overflow-y-auto border-r border-[var(--line)] bg-[var(--paper)] p-6 lg:block">
-                <p className="detail-heading">Your checkpoints</p>
-                <ol className="mt-5 space-y-4">
-                  {selected.checkpoints.map((item, index) => <li key={item} className="flex gap-3 text-sm leading-5"><span className="grid size-6 shrink-0 place-items-center rounded-full bg-[var(--ink)] text-[10px] font-bold text-[var(--lime)]">{index + 1}</span><span>{item}</span></li>)}
-                </ol>
-                <div className="mt-8 border-t border-[var(--line)] pt-6"><p className="detail-heading">Pressure test</p><p className="mt-3 text-sm italic leading-6 text-[var(--muted-ink)]">“{selected.interviewerPush}”</p></div>
-              </aside>
-
-              <section className="flex min-h-0 flex-col">
-                <div className="flex items-center justify-between border-b border-[var(--line)] px-5 py-3">
-                  <span className="text-xs font-bold uppercase tracking-[0.13em] text-[var(--muted-ink)]">Design notes</span>
-                  <span className="text-xs text-[var(--muted-ink)]">{answer.length.toLocaleString()} characters · autosaved</span>
-                </div>
-                <textarea className="design-editor" value={answer} onChange={(event) => saveDraft(event.target.value)} maxLength={25000} disabled={reviewing} spellCheck aria-label="System design answer" />
-                <div className="flex flex-col gap-3 border-t border-[var(--line)] bg-[var(--paper)] p-4 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-xs leading-5 text-[var(--muted-ink)]">Use the rubric for a private offline check, or send this answer to OpenAI for deeper feedback.</p>
-                  <div className="flex shrink-0 gap-2"><button className="secondary-button" onClick={finishLocally} disabled={reviewing}>Use local rubric</button><button className="primary-button" onClick={requestAiReview} disabled={reviewing}>{reviewing ? "Reviewing…" : <><Sparkles size={15} /> AI review</>}</button></div>
-                </div>
-              </section>
-
-              <aside className="overflow-y-auto border-t border-[var(--line)] bg-white p-5 lg:border-l lg:border-t-0 lg:p-6">
-                <div className="flex items-center justify-between"><p className="detail-heading">Coach review</p>{feedback && <span className="score-badge">{feedback.score}/100</span>}</div>
-                {!feedback && !reviewError && <div className="mt-8 rounded-2xl border border-dashed border-[var(--line-strong)] p-6 text-center"><span className="mx-auto grid size-12 place-items-center rounded-full bg-[var(--lime-wash)] text-[var(--ink)]"><Sparkles size={21} /></span><h3 className="mt-4 font-[var(--font-display)] text-lg font-bold">Feedback when you’re ready</h3><p className="mt-2 text-sm leading-6 text-[var(--muted-ink)]">You’ll get a score, concrete strengths, missed risks, and a follow-up question.</p></div>}
-                {reviewError && <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-6 text-red-800">{reviewError}<button className="mt-3 block font-bold underline" onClick={finishLocally}>Run the local rubric instead</button></div>}
-                {feedback && <div className="mt-6 space-y-6"><p className="text-sm leading-6 text-[var(--muted-ink)]">{feedback.summary}</p><div><p className="feedback-heading good">What worked</p><ul className="feedback-list">{feedback.strengths.map((item) => <li key={item}>{item}</li>)}</ul></div><div><p className="feedback-heading improve">Make it stronger</p><ul className="feedback-list">{feedback.improvements.map((item) => <li key={item}>{item}</li>)}</ul></div><div className="rounded-xl bg-[var(--ink)] p-4 text-white"><p className="overline text-[var(--lime)]">Next interviewer question</p><p className="mt-2 text-sm leading-6">{feedback.followUp}</p></div><button className="primary-button w-full justify-center" onClick={closeMock}>Finish session <Check size={16} /></button></div>}
-              </aside>
-            </div>
-          </div>
+          <DesignSession problem={selected} diagram={diagram} onDiagram={value => { setDiagram(value); patchProgress(selected.id, { diagram: value }); }}
+            answer={answer} onAnswer={saveDraft} secondsLeft={secondsLeft} running={running}
+            onToggle={() => setRunning(value => !value && secondsLeft > 0)} onReset={() => setSecondsLeft(selected.minutes * 60)}
+            onClose={closeMock} reviewing={reviewing} feedback={feedback} error={reviewError}
+            onLocal={finishLocally} onAI={() => { void requestAiReview(); }} storageMessage={storageMessage} />
         </div>
       )}
     </div>

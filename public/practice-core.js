@@ -1,3 +1,4 @@
+import { parseDiagram, analyzeDiagram } from "./architecture-core.js";
 // Shared browser behavior for React and the standalone Worker.
 export const MAX_ANSWER = 25000;
 export const MAX_IMPORT_BYTES = 1000000;
@@ -17,6 +18,7 @@ export function parseProgress(value, ids) {
       throw new Error("Invalid progress for " + id + ". Your existing progress has been kept.");
     }
     result[id] = { status: item.status, bookmarked: item.bookmarked, attempts: item.attempts };
+    if (item.diagram !== undefined) result[id].diagram = parseDiagram(item.diagram);
     for (const key of ["score", "draft", "lastPracticed"]) {
       if (item[key] !== undefined) result[id][key] = item[key];
     }
@@ -39,9 +41,11 @@ export function writtenAnswer(answer, template) {
     .filter(line => line && !prompts.has(line) && !/^\d+\.\s+[A-Z &-]+$/.test(line)).join("\n");
 }
 
-export function localAssessment(answer, problem, template) {
-  const content = writtenAnswer(answer, template);
-  if (content.replace(/\s/g, "").length < 120) {
+export function localAssessment(answer, problem, template, diagram) {
+  const content = [writtenAnswer(answer, template), ...(diagram?.nodes.map(n => n.notes) ?? [])].join("\n");
+  const graph = diagram?.nodes.length ? analyzeDiagram(diagram) : null;
+  const connected = graph ? diagram.nodes.length - graph.disconnected.length : 0;
+  if (content.replace(/\s/g, "").length < 120 && !(connected > 1 && diagram.edges.length > 0 && !graph.cyclic)) {
     throw new Error("Write at least 120 non-whitespace characters of your own design before requesting feedback.");
   }
   const criteria = [
@@ -57,8 +61,8 @@ export function localAssessment(answer, problem, template) {
   return {
     score: Math.min(100, hits.length * 12 + Math.min(28, Math.floor(content.length / 80))),
     summary: "Offline coverage check only. Keywords and length cannot establish design correctness or interview readiness.",
-    strengths: hits.length ? hits.map(([label]) => "Detected: " + label.toLowerCase() + ".") : ["You wrote an original design attempt."],
-    improvements: missing.length ? missing.map(([label]) => "Make explicit: " + label.toLowerCase() + ".") : ["Trace a concrete request through every component and justify each decision against the scale card."],
+    strengths: [...(hits.length ? hits.map(([label]) => "Detected: " + label.toLowerCase() + ".") : ["You created an original design attempt."]), ...(graph ? [`${connected} components reachable from entry paths; ${graph.disconnected.length} disconnected.`] : [])],
+    improvements: [...(missing.length ? missing.map(([label]) => "Make explicit: " + label.toLowerCase() + ".") : ["Trace a concrete request through every component and justify each decision against the scale card."]), ...(graph?.warnings ?? []), ...(graph?.bottlenecks.length ? ["The traffic model found components over capacity. Review the traffic lab before adding replicas."] : [])],
     followUp: problem.interviewerPush,
   };
 }
@@ -66,5 +70,9 @@ export function localAssessment(answer, problem, template) {
 export function isFeedback(value) {
   return !!value && Number.isInteger(value.score) && value.score >= 0 && value.score <= 100
     && typeof value.summary === "string" && typeof value.followUp === "string"
-    && [value.strengths, value.improvements].every(list => Array.isArray(list) && list.every(item => typeof item === "string"));
+    && [value.strengths, value.improvements].every(list => Array.isArray(list) && list.every(item => typeof item === "string"))
+    && (value.findings === undefined || (Array.isArray(value.findings) && value.findings.length <= 12 && value.findings.every(f => f
+      && ["critical", "high", "medium", "low"].includes(f.severity)
+      && ["scalability", "reliability", "security", "cost", "operability", "maintainability"].includes(f.dimension)
+      && [f.title, f.evidence, f.recommendation].every(s => typeof s === "string" && s.length <= 2000))));
 }

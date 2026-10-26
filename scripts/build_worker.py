@@ -64,12 +64,23 @@ def build() -> None:
     (ROOT / "data/python-lessons.json").write_text(
         json.dumps(lessons, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     source = (ROOT / "worker/index.js").read_text(encoding="utf-8")
-    source = source.replace('import { readReviewRequest } from "../lib/review-request.js";',
-                            (ROOT / "lib/review-request.js").read_text(encoding="utf-8").replace("export ", ""))
+    architecture_core = (ROOT / "public/architecture-core.js").read_text(encoding="utf-8")
     core = (ROOT / "public/practice-core.js").read_text(encoding="utf-8")
+    contract = (ROOT / "lib/review-contract.js").read_text(encoding="utf-8")
+    contract = contract.replace('import { isFeedback } from "../public/practice-core.js";', '')
+    request_code = (ROOT / "lib/review-request.js").read_text(encoding="utf-8")
+    request_code = request_code.replace('import { parseDiagram, designSubmission } from "../public/architecture-core.js";', '')
+    server_core = core.replace('import { parseDiagram, analyzeDiagram } from "./architecture-core.js";', '')
+    source = source.replace('import { reviewSchema, reviewInstructions, groundReview } from "../lib/review-contract.js";',
+                            (architecture_core + '\n' + server_core + '\n' + contract).replace('export ', ''))
+    source = source.replace('import { readReviewRequest } from "../lib/review-request.js";',
+                            request_code.replace("export ", ""))
     for marker, value in [("const PROBLEMS = []; // @build:problems", problems),
                           ("const LESSONS = {}; // @build:lessons", lessons),
                           ('const CORE_JS = ""; // @build:core', core),
+                          ('const ARCH_CORE_JS = ""; // @build:architecture-core', architecture_core),
+                          ('const WORKBENCH_JS = ""; // @build:workbench', (ROOT / "public/architecture-workbench.js").read_text(encoding="utf-8")),
+                          ('const WORKBENCH_CSS = ""; // @build:workbench-css', (ROOT / "public/architecture-workbench.css").read_text(encoding="utf-8") + (ROOT / "public/worker-workspace.css").read_text(encoding="utf-8")),
                           ('const APP_JS = ""; // @build:app', (ROOT / "public/worker-app.js").read_text(encoding="utf-8"))]:
         if marker not in source:
             raise ValueError(f"Missing build marker: {marker}")

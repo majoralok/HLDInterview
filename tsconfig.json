@@ -42,6 +42,9 @@
   ],
   "exclude": [
     "node_modules",
-    "examples"
+    "examples",
+    "SystemDesign.ai-main",
+    "system-design-simulator-main",
+    "arch-review-main"
   ]
 }

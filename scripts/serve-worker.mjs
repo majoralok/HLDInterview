@@ -40,7 +40,7 @@ const server = http.createServer(async (incoming, outgoing) => {
 });
 
 server.listen(port, "127.0.0.1", () => {
-  console.log(`Architect Lab is running at http://127.0.0.1:${port}`);
+  console.log(`ScaleSketch is running at http://127.0.0.1:${port}`);
 });
 
 for (const signal of ["SIGINT", "SIGTERM"]) {
